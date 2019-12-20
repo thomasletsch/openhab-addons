@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2019 Contributors to the openHAB project
+ * Copyright (c) 2010-2019 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -30,6 +30,16 @@ public class BiSecureGatewayBindingConstants {
     public static final ThingTypeUID GATEWAY_BRIDGE_TYPE = new ThingTypeUID(BINDING_ID, "bisecuregateway");
     public static final ThingTypeUID GROUP_THING_TYPE = new ThingTypeUID(BINDING_ID, "bisecuregroup");
     public static final ThingTypeUID PORT_THING_TYPE = new ThingTypeUID(BINDING_ID, "bisecureport");
+
+    // List of all properties
+    public static final String PROPERTY_MAC = "mac";
+    public static final String PROPERTY_SOURCE_ADDRESS = "sourceAddress";
+    public static final String PROPERTY_SOFTWARE_VERSION = "swVersion";
+    public static final String PROPERTY_HARDWARE_VERSION = "hwVersion";
+    public static final String PROPERTY_PROTOCOL = "protocol";
+    public static final String PROPERTY_NAME = "name";
+    public static final String PROPERTY_ID = "id";
+    public static final String PROPERTY_TYPE = "type";
 
     // List of all Channel ids
 }

@@ -21,12 +21,12 @@
 		<config-description>
 			<parameter name="username" type="text" required="true">
 				<label>Username</label>
-				<description>This is the username to connect to the gateway</description>
+				<description>This is the user name for logging in into the gateway. Default is "admin"</description>
 				<default>admin</default>
 			</parameter>
 			<parameter name="password" type="text" required="true">
 				<label>Password</label>
-				<description>This is the password to connect to the gateway</description>
+				<description>This is the password for logging in into the gateway. Default is "0000"</description>
 				<context>password</context>
 				<default>0000</default>
 			</parameter>

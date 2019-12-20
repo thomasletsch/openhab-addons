@@ -20,7 +20,12 @@ package org.openhab.binding.bisecuregateway.internal;
 public class BiSecureGatewayConfiguration {
 
     /**
-     * Sample configuration parameter. Replace with your own.
+     * Username
      */
-    public String config1;
+    public String userName;
+
+    /**
+     * Password
+     */
+    public String password;
 }

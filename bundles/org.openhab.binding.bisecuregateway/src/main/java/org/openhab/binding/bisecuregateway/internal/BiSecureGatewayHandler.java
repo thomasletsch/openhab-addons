@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2019 Contributors to the openHAB project
+ * Copyright (c) 2010-2019 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -12,8 +12,12 @@
  */
 package org.openhab.binding.bisecuregateway.internal;
 
+import static org.openhab.binding.bisecuregateway.internal.BiSecureGatewayBindingConstants.*;
+
 import java.util.concurrent.CompletableFuture;
 
+import org.bisdk.sdk.Client;
+import org.bisdk.sdk.ClientAPI;
 import org.bisdk.sdk.Discovery;
 import org.bisdk.sdk.DiscoveryData;
 import org.eclipse.jdt.annotation.NonNullByDefault;
@@ -36,9 +40,14 @@ import org.slf4j.LoggerFactory;
 @NonNullByDefault
 public class BiSecureGatewayHandler extends BaseThingHandler {
 
+    private static final String DEFAULT_TOKEN = "00000000";
+
+    private static final int DEFAULT_PORT = 4000;
+
     private final Logger logger = LoggerFactory.getLogger(BiSecureGatewayHandler.class);
 
     private @Nullable BiSecureGatewayConfiguration config;
+    private @Nullable ClientAPI clientAPI;
 
     public BiSecureGatewayHandler(Thing thing) {
         super(thing);
@@ -85,6 +94,15 @@ public class BiSecureGatewayHandler extends BaseThingHandler {
         scheduler.execute(() -> {
             try {
                 DiscoveryData discoveryData = serverFuture.join();
+                Client client = new Client(discoveryData.getSourceAddress(), "000000000000",
+                        discoveryData.getGatewayId(), DEFAULT_TOKEN, DEFAULT_PORT);
+                clientAPI = new ClientAPI(client);
+                thing.setProperty(PROPERTY_MAC, discoveryData.getMac());
+                thing.setProperty(PROPERTY_SOURCE_ADDRESS, discoveryData.getSourceAddress().toString());
+                thing.setProperty(PROPERTY_SOFTWARE_VERSION, discoveryData.getSwVersion());
+                thing.setProperty(PROPERTY_HARDWARE_VERSION, discoveryData.getHwVersion());
+                thing.setProperty(PROPERTY_NAME, clientAPI.getName());
+                clientAPI.login(config.userName, config.password);
                 updateStatus(ThingStatus.ONLINE);
             } catch (Exception e) {
                 updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR, e.getMessage());
