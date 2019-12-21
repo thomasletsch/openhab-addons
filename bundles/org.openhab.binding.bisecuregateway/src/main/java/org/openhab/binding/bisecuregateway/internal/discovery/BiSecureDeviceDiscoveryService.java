@@ -22,8 +22,8 @@ import org.eclipse.smarthome.config.discovery.AbstractDiscoveryService;
 import org.eclipse.smarthome.config.discovery.DiscoveryResultBuilder;
 import org.eclipse.smarthome.core.thing.ThingStatus;
 import org.eclipse.smarthome.core.thing.ThingUID;
-import org.openhab.binding.bisecuregateway.internal.BiSecureGatewayHandler;
 import org.openhab.binding.bisecuregateway.internal.BiSecureGatewayHandlerFactory;
+import org.openhab.binding.bisecuregateway.internal.handler.BiSecureGatewayHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

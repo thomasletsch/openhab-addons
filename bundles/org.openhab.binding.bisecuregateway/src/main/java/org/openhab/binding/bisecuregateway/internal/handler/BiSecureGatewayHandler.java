@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.openhab.binding.bisecuregateway.internal;
+package org.openhab.binding.bisecuregateway.internal.handler;
 
 import static org.openhab.binding.bisecuregateway.internal.BiSecureGatewayBindingConstants.*;
 
@@ -29,6 +29,7 @@ import org.eclipse.smarthome.core.thing.binding.BaseThingHandler;
 import org.eclipse.smarthome.core.thing.binding.BridgeHandler;
 import org.eclipse.smarthome.core.thing.binding.ThingHandler;
 import org.eclipse.smarthome.core.types.Command;
+import org.openhab.binding.bisecuregateway.internal.BiSecureGatewayConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

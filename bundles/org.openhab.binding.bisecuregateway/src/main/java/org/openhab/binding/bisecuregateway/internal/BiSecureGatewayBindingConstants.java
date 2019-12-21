@@ -43,4 +43,6 @@ public class BiSecureGatewayBindingConstants {
     public static final String PROPERTY_TYPE = "type";
 
     // List of all Channel ids
+
+    public static final String ITEM_TYPE_ROLLERSHUTTER = "Rollershutter";
 }

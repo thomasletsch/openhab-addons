@@ -47,24 +47,10 @@
 		</config-description>
 	</thing-type>
 
-	<thing-type id="bisecureport">
-		<supported-bridge-type-refs>
-			<bridge-type-ref id="bisecuregateway" />
-		</supported-bridge-type-refs>
-		<label>BiSecure Device</label>
-		<description>A device (part of a group) connected to the BiSecure Gateway (e.g. a garage door). Called port.</description>
-        <properties>
-            <property name="id"></property>
-            <property name="type"></property>
-        </properties>
-		<config-description>
-		</config-description>
-	</thing-type>
-
-    <channel-type id="IMPULS">
-        <item-type>Switch</item-type>
-        <label>Impuls Control</label>
-        <description>An impuls control</description>
-    </channel-type>
+	<channel-type id="IMPULS">
+		<item-type>Rollershutter</item-type>
+		<label>Impuls Control</label>
+		<description>An impuls control</description>
+	</channel-type>
 
 </thing:thing-descriptions>

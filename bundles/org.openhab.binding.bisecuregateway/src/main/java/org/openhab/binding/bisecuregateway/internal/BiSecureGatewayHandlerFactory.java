@@ -28,6 +28,7 @@ import org.eclipse.smarthome.core.thing.binding.BaseThingHandlerFactory;
 import org.eclipse.smarthome.core.thing.binding.ThingHandler;
 import org.eclipse.smarthome.core.thing.binding.ThingHandlerFactory;
 import org.openhab.binding.bisecuregateway.internal.discovery.BiSecureDeviceDiscoveryService;
+import org.openhab.binding.bisecuregateway.internal.handler.BiSecureGatewayHandler;
 import org.openhab.binding.bisecuregateway.internal.handler.BiSecureGroupHandler;
 import org.osgi.service.component.annotations.Component;
 
