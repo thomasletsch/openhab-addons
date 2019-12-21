@@ -14,12 +14,11 @@ package org.openhab.binding.bisecuregateway.internal;
 
 import static org.openhab.binding.bisecuregateway.internal.BiSecureGatewayBindingConstants.*;
 
-import java.util.concurrent.CompletableFuture;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 import org.bisdk.sdk.Client;
 import org.bisdk.sdk.ClientAPI;
-import org.bisdk.sdk.Discovery;
-import org.bisdk.sdk.DiscoveryData;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.smarthome.core.thing.ChannelUID;
@@ -57,79 +56,43 @@ public class BiSecureGatewayHandler extends BaseThingHandler implements BridgeHa
 
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
-        // if (CHANNEL_1.equals(channelUID.getId())) {
-        // if (command instanceof RefreshType) {
-        // // TODO: handle data refresh
-        // }
-        //
-        // // TODO: handle command
-        //
-        // // Note: if communication with thing fails for some reason,
-        // // indicate that by setting the status with detail information:
-        // // updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
-        // // "Could not control device at IP address x.x.x.x");
-        // }
+        logger.warn("Handle command not implemented!");
     }
 
     @Override
     public void initialize() {
-        // logger.debug("Start initializing!");
+        logger.debug("Start initializing!");
         config = getConfigAs(BiSecureGatewayConfiguration.class);
+        updateStatus(ThingStatus.UNKNOWN, ThingStatusDetail.BRIDGE_UNINITIALIZED, "Connecting to gateway");
 
-        // TODO: Initialize the handler.
-        // The framework requires you to return from this method quickly. Also, before leaving this method a thing
-        // status from one of ONLINE, OFFLINE or UNKNOWN must be set. This might already be the real thing status in
-        // case you can decide it directly.
-        // In case you can not decide the thing status directly (e.g. for long running connection handshake using WAN
-        // access or similar) you should set status UNKNOWN here and then decide the real status asynchronously in the
-        // background.
+        Client client;
+        try {
+            InetAddress inetAddress = InetAddress
+                    .getByName(thing.getProperties().get(PROPERTY_SOURCE_ADDRESS).replace("/", ""));
+            client = new Client(inetAddress, "000000000000", thing.getProperties().get(PROPERTY_GATEWAY_ID),
+                    DEFAULT_TOKEN, DEFAULT_PORT);
+            clientAPI = new ClientAPI(client);
+        } catch (UnknownHostException e) {
+            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR, e.getMessage());
+            return;
+        }
+        thing.setProperty(PROPERTY_NAME, clientAPI.getName());
+        logger.info("Logging in with username " + config.userName);
+        clientAPI.login(config.userName, config.password);
+        updateStatus(ThingStatus.ONLINE);
+    }
 
-        // set the thing status to UNKNOWN temporarily and let the background task decide for the real status.
-        // the framework is then able to reuse the resources from the thing handler initialization.
-        // we set this upfront to reliably check status updates in unit tests.
-        updateStatus(ThingStatus.UNKNOWN, ThingStatusDetail.CONFIGURATION_PENDING, "Searching for gateway");
-
-        Discovery discovery = new Discovery();
-        CompletableFuture<DiscoveryData> serverFuture = discovery.startServer();
-        discovery.sendDiscoveryRequest();
-
-        scheduler.execute(() -> {
-            try {
-                DiscoveryData discoveryData = serverFuture.join();
-                Client client = new Client(discoveryData.getSourceAddress(), "000000000000",
-                        discoveryData.getGatewayId(), DEFAULT_TOKEN, DEFAULT_PORT);
-                clientAPI = new ClientAPI(client);
-                thing.setProperty(PROPERTY_MAC, discoveryData.getMac());
-                thing.setProperty(PROPERTY_SOURCE_ADDRESS, discoveryData.getSourceAddress().toString());
-                thing.setProperty(PROPERTY_SOFTWARE_VERSION, discoveryData.getSwVersion());
-                thing.setProperty(PROPERTY_HARDWARE_VERSION, discoveryData.getHwVersion());
-                thing.setProperty(PROPERTY_NAME, clientAPI.getName());
-                logger.info("Logging in with username " + config.userName);
-                clientAPI.login(config.userName, config.password);
-                updateStatus(ThingStatus.ONLINE);
-            } catch (Exception e) {
-                updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR, e.getMessage());
-            }
-        });
-
-        // logger.debug("Finished initializing!");
-
-        // Note: When initialization can NOT be done set the status with more details for further
-        // analysis. See also class ThingStatusDetail for all available status details.
-        // Add a description to give user information to understand why thing does not work as expected. E.g.
-        // updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR,
-        // "Can not access device as username and/or password are invalid");
+    public @Nullable ClientAPI getClientAPI() {
+        return clientAPI;
     }
 
     @Override
     public void childHandlerInitialized(ThingHandler childHandler, Thing childThing) {
-        // TODO Auto-generated method stub
-
+        logger.warn("childHandlerInitialized not implemented!");
     }
 
     @Override
     public void childHandlerDisposed(ThingHandler childHandler, Thing childThing) {
-        // TODO Auto-generated method stub
-
+        logger.warn("childHandlerDisposed not implemented!");
     }
 }
