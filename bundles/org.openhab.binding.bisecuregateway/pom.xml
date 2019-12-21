@@ -22,7 +22,7 @@
 		<dependency>
 			<groupId>org.bisdk.sdk</groupId>
 			<artifactId>sdk-jvm</artifactId>
-			<version>0.0.1</version>
+			<version>0.0.2-SNAPSHOT</version>
 			<scope>compile</scope>
 			<exclusions>
 				<exclusion>
@@ -70,7 +70,44 @@
 			<groupId>org.jetbrains.kotlinx</groupId>
 			<artifactId>kotlinx-io-jvm</artifactId>
 			<version>0.1.6</version>
-			<scope>provided</scope>
+			<scope>compile</scope>
 		</dependency>
 	</dependencies>
+	<build>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>biz.aQute.bnd</groupId>
+					<artifactId>bnd-maven-plugin</artifactId>
+					<configuration>
+						<bnd><![CDATA[Bundle-SymbolicName: ${project.artifactId}
+Automatic-Module-Name: ${def;bsn}
+Import-Package: \\
+  kotlin.internal.*;resolution:=optional,\\
+  kotlinx.*;resolution:=optional,\\
+  org.bisdk.sdk.*;resolution:=optional,\\
+  io.swagger.annotations.*;resolution:=optional,\\
+  javax.annotation.security.*;resolution:=optional,\\
+  org.eclipse.jdt.annotation.*;resolution:=optional,\\
+  org.openhab.core.automation.annotation.*;resolution:=optional;version=!,\\
+  org.eclipse.smarthome.*;version=!,\\
+  org.openhab.*;version=!,\\
+  com.google.common.*;version="14.0",\\
+  ${bnd.importpackage},\\
+  *
+-exportcontents: \\
+  !*.internal.*,\\
+  !*.impl.*, \\
+  org.openhab.*, \\
+  ${bnd.exportpackage}
+-sources: false
+-contract: *
+-includeresource: ${bnd.includeresource}]]></bnd>
+						<!-- -dsannotations-options: norequirements -->
+						<!-- Bundle-SymbolicName: ${project.groupId}.${project.artifactId} -->
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+	</build>
 </project>

@@ -27,6 +27,8 @@ import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.thing.ThingStatus;
 import org.eclipse.smarthome.core.thing.ThingStatusDetail;
 import org.eclipse.smarthome.core.thing.binding.BaseThingHandler;
+import org.eclipse.smarthome.core.thing.binding.BridgeHandler;
+import org.eclipse.smarthome.core.thing.binding.ThingHandler;
 import org.eclipse.smarthome.core.types.Command;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +40,7 @@ import org.slf4j.LoggerFactory;
  * @author Thomas Letsch - Initial contribution
  */
 @NonNullByDefault
-public class BiSecureGatewayHandler extends BaseThingHandler {
+public class BiSecureGatewayHandler extends BaseThingHandler implements BridgeHandler {
 
     private static final String DEFAULT_TOKEN = "00000000";
 
@@ -102,6 +104,7 @@ public class BiSecureGatewayHandler extends BaseThingHandler {
                 thing.setProperty(PROPERTY_SOFTWARE_VERSION, discoveryData.getSwVersion());
                 thing.setProperty(PROPERTY_HARDWARE_VERSION, discoveryData.getHwVersion());
                 thing.setProperty(PROPERTY_NAME, clientAPI.getName());
+                logger.info("Logging in with username " + config.userName);
                 clientAPI.login(config.userName, config.password);
                 updateStatus(ThingStatus.ONLINE);
             } catch (Exception e) {
@@ -116,5 +119,17 @@ public class BiSecureGatewayHandler extends BaseThingHandler {
         // Add a description to give user information to understand why thing does not work as expected. E.g.
         // updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR,
         // "Can not access device as username and/or password are invalid");
+    }
+
+    @Override
+    public void childHandlerInitialized(ThingHandler childHandler, Thing childThing) {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void childHandlerDisposed(ThingHandler childHandler, Thing childThing) {
+        // TODO Auto-generated method stub
+
     }
 }

@@ -19,7 +19,7 @@
 		</properties>
 
 		<config-description>
-			<parameter name="username" type="text" required="true">
+			<parameter name="userName" type="text" required="true">
 				<label>Username</label>
 				<description>This is the user name for logging in into the gateway. Default is "admin"</description>
 				<default>admin</default>
