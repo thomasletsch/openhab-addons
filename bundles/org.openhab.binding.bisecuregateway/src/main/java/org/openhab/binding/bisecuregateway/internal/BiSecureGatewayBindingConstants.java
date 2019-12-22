@@ -29,7 +29,6 @@ public class BiSecureGatewayBindingConstants {
     // List of all Thing Type UIDs
     public static final ThingTypeUID GATEWAY_BRIDGE_TYPE = new ThingTypeUID(BINDING_ID, "bisecuregateway");
     public static final ThingTypeUID GROUP_THING_TYPE = new ThingTypeUID(BINDING_ID, "bisecuregroup");
-    public static final ThingTypeUID PORT_THING_TYPE = new ThingTypeUID(BINDING_ID, "bisecureport");
 
     // List of all properties
     public static final String PROPERTY_MAC = "mac";

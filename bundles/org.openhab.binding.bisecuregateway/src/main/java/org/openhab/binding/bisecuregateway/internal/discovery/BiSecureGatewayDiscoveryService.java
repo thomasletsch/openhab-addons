@@ -16,10 +16,8 @@ import static org.openhab.binding.bisecuregateway.internal.BiSecureGatewayBindin
 
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import org.bisdk.sdk.ClientAPI;
 import org.bisdk.sdk.Discovery;
 import org.bisdk.sdk.DiscoveryData;
 import org.eclipse.jdt.annotation.NonNullByDefault;
@@ -46,17 +44,10 @@ public class BiSecureGatewayDiscoveryService extends AbstractDiscoveryService {
 
     private final Logger logger = LoggerFactory.getLogger(BiSecureGatewayDiscoveryService.class);
 
-    private static final String DEFAULT_TOKEN = "00000000";
-    private static final int DEFAULT_PORT = 4000;
-
     private static final int TIMEOUT = 15;
-    private static final long REFRESH = 600;
-
     private boolean running;
 
     private @Nullable CompletableFuture<DiscoveryData> discoveryFuture;
-    private @Nullable ScheduledFuture<?> timeoutFuture;
-    private @Nullable ClientAPI clientAPI;
 
     public BiSecureGatewayDiscoveryService() {
         super(BiSecureGatewayHandlerFactory.SUPPORTED_THING_TYPES_UIDS, TIMEOUT, true);
@@ -99,7 +90,7 @@ public class BiSecureGatewayDiscoveryService extends AbstractDiscoveryService {
             Discovery discovery = new Discovery();
             discoveryFuture = discovery.startServer();
             running = true;
-            timeoutFuture = scheduler.schedule(this::stopDiscovery, TIMEOUT, TimeUnit.SECONDS);
+            scheduler.schedule(this::stopDiscovery, TIMEOUT, TimeUnit.SECONDS);
             discovery.sendDiscoveryRequest();
             DiscoveryData discoveryData = discoveryFuture.join();
             String name = discoveryData.getMac().replace(":", "-");

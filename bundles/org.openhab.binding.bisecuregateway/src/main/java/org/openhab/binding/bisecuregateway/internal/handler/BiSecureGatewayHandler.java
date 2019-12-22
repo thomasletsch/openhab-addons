@@ -66,18 +66,19 @@ public class BiSecureGatewayHandler extends BaseThingHandler implements BridgeHa
         config = getConfigAs(BiSecureGatewayConfiguration.class);
         updateStatus(ThingStatus.UNKNOWN, ThingStatusDetail.BRIDGE_UNINITIALIZED, "Connecting to gateway");
 
-        Client client;
         try {
             InetAddress inetAddress = InetAddress
                     .getByName(thing.getProperties().get(PROPERTY_SOURCE_ADDRESS).replace("/", ""));
-            client = new Client(inetAddress, "000000000000", thing.getProperties().get(PROPERTY_GATEWAY_ID),
+            Client client = new Client(inetAddress, "000000000000", thing.getProperties().get(PROPERTY_GATEWAY_ID),
                     DEFAULT_TOKEN, DEFAULT_PORT);
             clientAPI = new ClientAPI(client);
         } catch (UnknownHostException e) {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR, e.getMessage());
             return;
         }
-        thing.setProperty(PROPERTY_NAME, clientAPI.getName());
+        if (thing.getProperties().get(PROPERTY_NAME) == null) {
+            thing.setProperty(PROPERTY_NAME, clientAPI.getName());
+        }
         logger.info("Logging in with username " + config.userName);
         clientAPI.login(config.userName, config.password);
         updateStatus(ThingStatus.ONLINE);
@@ -95,5 +96,17 @@ public class BiSecureGatewayHandler extends BaseThingHandler implements BridgeHa
     @Override
     public void childHandlerDisposed(ThingHandler childHandler, Thing childThing) {
         logger.warn("childHandlerDisposed not implemented!");
+    }
+
+    @Override
+    public void dispose() {
+        if (clientAPI != null) {
+            try {
+                clientAPI.logout();
+            } catch (Exception e) {
+                // Ignore
+            }
+            clientAPI = null;
+        }
     }
 }

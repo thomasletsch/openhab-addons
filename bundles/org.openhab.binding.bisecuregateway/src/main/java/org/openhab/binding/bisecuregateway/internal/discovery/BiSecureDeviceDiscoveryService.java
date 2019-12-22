@@ -66,7 +66,7 @@ public class BiSecureDeviceDiscoveryService extends AbstractDiscoveryService {
      */
     private void discoverDevices() {
         if (bridge.getThing().getStatus() != ThingStatus.ONLINE) {
-            logger.debug("Harmony Hub not online, scanning postponed");
+            logger.debug("BiSecure Gateway not online, scanning postponed");
             return;
         }
         if (bridge.getClientAPI() == null) {

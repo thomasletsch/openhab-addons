@@ -51,6 +51,7 @@
 		<item-type>Rollershutter</item-type>
 		<label>Impuls Control</label>
 		<description>An impuls control</description>
+		<category>Rollershutter</category>		
 	</channel-type>
 
 </thing:thing-descriptions>

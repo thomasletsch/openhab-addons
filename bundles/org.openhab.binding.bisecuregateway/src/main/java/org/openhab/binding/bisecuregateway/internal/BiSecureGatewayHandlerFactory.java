@@ -43,7 +43,7 @@ import org.osgi.service.component.annotations.Component;
 public class BiSecureGatewayHandlerFactory extends BaseThingHandlerFactory {
 
     public static final Set<ThingTypeUID> SUPPORTED_THING_TYPES_UIDS = new HashSet<ThingTypeUID>(
-            Arrays.asList(GATEWAY_BRIDGE_TYPE, GROUP_THING_TYPE, PORT_THING_TYPE));
+            Arrays.asList(GATEWAY_BRIDGE_TYPE, GROUP_THING_TYPE));
 
     @Override
     public boolean supportsThingType(ThingTypeUID thingTypeUID) {

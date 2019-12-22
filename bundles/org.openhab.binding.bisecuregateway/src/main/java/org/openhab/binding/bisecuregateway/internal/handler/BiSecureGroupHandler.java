@@ -20,7 +20,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
+import org.bisdk.PermissionDeniedException;
 import org.bisdk.sdk.ClientAPI;
 import org.bisdk.sdk.Group;
 import org.bisdk.sdk.Port;
@@ -64,13 +67,14 @@ public class BiSecureGroupHandler extends BaseThingHandler {
 
     public static final Set<ThingTypeUID> SUPPORTED_THING_TYPES_UIDS = Collections.singleton(GROUP_THING_TYPE);
 
-    private BiSecureGatewayHandlerFactory factory;
-
     private Map<ChannelUID, Port> ports = new HashMap<ChannelUID, Port>();
+
+    private @Nullable ScheduledFuture<?> pollingJob;
+
+    private List<Channel> channels = Collections.emptyList();
 
     public BiSecureGroupHandler(Thing thing, BiSecureGatewayHandlerFactory factory) {
         super(thing);
-        this.factory = factory;
     }
 
     protected @Nullable BiSecureGatewayHandler getBiSecureGatewayHandler() {
@@ -95,11 +99,15 @@ public class BiSecureGroupHandler extends BaseThingHandler {
                 group = toBeChecked;
             }
         }
-        List<Channel> channels = new ArrayList<Channel>();
+        if (group == null) {
+            logger.debug("Group " + groupId + " not found in gateway!");
+            return;
+        }
+        channels = new ArrayList<Channel>();
         group.getPorts().forEach(port -> {
-            String portType = PortType.Companion.from(port.getType()).name();
+            String portType = PortType.Companion.from(port.getType()).name(); // e.g. "IMPULS" for garage door control
             ChannelTypeUID channelTypeUID = new ChannelTypeUID(getThing().getUID().getAsString() + ":" + portType);
-            ChannelUID channelUID = new ChannelUID(getThing().getUID(), PortType.Companion.from(port.getType()).name());
+            ChannelUID channelUID = new ChannelUID(getThing().getUID(), port.getId() + "_" + portType);
             Channel channel = ChannelBuilder.create(channelUID, BiSecureGatewayBindingConstants.ITEM_TYPE_ROLLERSHUTTER)
                     .withType(channelTypeUID).build();
             channels.add(channel);
@@ -109,24 +117,43 @@ public class BiSecureGroupHandler extends BaseThingHandler {
         thingBuilder.withChannels(channels);
         updateThing(thingBuilder.build());
         updateStatus(ThingStatus.ONLINE);
-        for (Channel channel : channels) {
-            updateChannelState(clientAPI, channel.getUID());
-        }
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                for (Channel channel : channels) {
+                    updateChannelState(clientAPI, channel.getUID());
+                }
+            }
+        };
+        pollingJob = scheduler.scheduleAtFixedRate(runnable, 0, 30, TimeUnit.SECONDS);
     }
 
     private void updateChannelState(ClientAPI clientAPI, ChannelUID channelUID) {
-        Transition transition = clientAPI.getTransition(ports.get(channelUID));
-        if (transition.getHcp().getPositionOpen()) {
-            updateState(channelUID, OpenClosedType.OPEN);
-        } else if (transition.getHcp().getPositionClose()) {
-            updateState(channelUID, OpenClosedType.CLOSED);
-        } else {
-            logger.info("Could no determine OpenClosedType: " + transition);
+        try {
+            Transition transition = clientAPI.getTransition(ports.get(channelUID));
+            if (transition.getHcp().getPositionOpen()) {
+                updateState(channelUID, OpenClosedType.OPEN);
+            } else if (transition.getHcp().getPositionClose()) {
+                updateState(channelUID, OpenClosedType.CLOSED);
+            } else {
+                logger.info("Could no determine OpenClosedType: " + transition);
+            }
+        } catch (PermissionDeniedException e) {
+            clientAPI.relogin();
         }
     }
 
     private @Nullable ClientAPI getClientAPI() {
-        BridgeHandler bridgeHandler = getBridge().getHandler();
+        Bridge bridge = getBridge();
+        if (bridge == null) {
+            logger.warn("Bridge is null, cannot get clientAPI");
+            return null;
+        }
+        BridgeHandler bridgeHandler = bridge.getHandler();
+        if (bridgeHandler == null) {
+            logger.warn("Bridge handler is null, cannot get clientAPI");
+            return null;
+        }
         ClientAPI clientAPI = ((BiSecureGatewayHandler) bridgeHandler).getClientAPI();
         return clientAPI;
     }
@@ -152,6 +179,8 @@ public class BiSecureGroupHandler extends BaseThingHandler {
         if (command instanceof UpDownType) {
             UpDownType upDownType = (UpDownType) command;
             if (upDownType == UpDownType.DOWN) {
+                clientAPI.setState(ports.get(channelUID)); // Still not clear how to explicitly open or close
+            } else {
                 clientAPI.setState(ports.get(channelUID));
             }
         }
@@ -169,6 +198,8 @@ public class BiSecureGroupHandler extends BaseThingHandler {
 
     @Override
     public void dispose() {
-
+        if (pollingJob != null) {
+            pollingJob.cancel(true);
+        }
     }
 }
