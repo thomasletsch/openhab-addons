@@ -38,12 +38,12 @@ public class BiSecureDeviceDiscoveryService extends AbstractDiscoveryService {
     private static final int TIMEOUT = 5;
 
     private final Logger logger = LoggerFactory.getLogger(BiSecureDeviceDiscoveryService.class);
-    private final BiSecureGatewayHandler bridge;
+    private final BiSecureGatewayHandler bridgeHandler;
 
-    public BiSecureDeviceDiscoveryService(BiSecureGatewayHandler bridge) {
+    public BiSecureDeviceDiscoveryService(BiSecureGatewayHandler bridgeHandler) {
         super(BiSecureGatewayHandlerFactory.SUPPORTED_THING_TYPES_UIDS, TIMEOUT, true);
-        logger.debug("BiSecureDeviceDiscoveryService {}", bridge);
-        this.bridge = bridge;
+        logger.debug("BiSecureDeviceDiscoveryService {}", bridgeHandler);
+        this.bridgeHandler = bridgeHandler;
     }
 
     @Override
@@ -65,16 +65,16 @@ public class BiSecureDeviceDiscoveryService extends AbstractDiscoveryService {
      * Discovers devices connected to a hub
      */
     private void discoverDevices() {
-        if (bridge.getThing().getStatus() != ThingStatus.ONLINE) {
+        if (bridgeHandler.getThing().getStatus() != ThingStatus.ONLINE) {
             logger.debug("BiSecure Gateway not online, scanning postponed");
             return;
         }
-        if (bridge.getClientAPI() == null) {
+        if (bridgeHandler.getClientAPI() == null) {
             logger.debug("ClientAPI not yet ready, scanning postponed");
             return;
         }
-        logger.debug("getting devices on {}", bridge.getThing().getUID().getId());
-        List<Group> groups = bridge.getClientAPI().getGroups();
+        logger.debug("getting devices on {}", bridgeHandler.getThing().getUID().getId());
+        List<Group> groups = bridgeHandler.getGroups();
         groups.forEach(group -> {
             addDiscoveryResults(group);
         });
@@ -83,7 +83,7 @@ public class BiSecureDeviceDiscoveryService extends AbstractDiscoveryService {
     private void addDiscoveryResults(Group group) {
         String name = group.getName();
         int id = group.getId();
-        ThingUID bridgeUID = bridge.getThing().getUID();
+        ThingUID bridgeUID = bridgeHandler.getThing().getUID();
         ThingUID thingUID = new ThingUID(GROUP_THING_TYPE, bridgeUID, id + "");
         // @formatter:off
         thingDiscovered(DiscoveryResultBuilder.create(thingUID)

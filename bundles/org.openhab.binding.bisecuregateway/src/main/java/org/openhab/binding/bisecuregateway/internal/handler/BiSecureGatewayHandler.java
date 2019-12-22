@@ -16,9 +16,12 @@ import static org.openhab.binding.bisecuregateway.internal.BiSecureGatewayBindin
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Collections;
+import java.util.List;
 
 import org.bisdk.sdk.Client;
 import org.bisdk.sdk.ClientAPI;
+import org.bisdk.sdk.Group;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.smarthome.core.thing.ChannelUID;
@@ -50,6 +53,7 @@ public class BiSecureGatewayHandler extends BaseThingHandler implements BridgeHa
 
     private @Nullable BiSecureGatewayConfiguration config;
     private @Nullable ClientAPI clientAPI;
+    private List<Group> groups = Collections.emptyList();
 
     public BiSecureGatewayHandler(Thing thing) {
         super(thing);
@@ -76,7 +80,7 @@ public class BiSecureGatewayHandler extends BaseThingHandler implements BridgeHa
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR, e.getMessage());
             return;
         }
-        if (thing.getProperties().get(PROPERTY_NAME) == null) {
+        if (!thing.getProperties().containsKey(PROPERTY_NAME)) {
             thing.setProperty(PROPERTY_NAME, clientAPI.getName());
         }
         logger.info("Logging in with username " + config.userName);
@@ -86,6 +90,17 @@ public class BiSecureGatewayHandler extends BaseThingHandler implements BridgeHa
 
     public @Nullable ClientAPI getClientAPI() {
         return clientAPI;
+    }
+
+    public @Nullable List<Group> getGroups() {
+        if (!groups.isEmpty()) {
+            return groups;
+        }
+        if (clientAPI == null) {
+            return Collections.emptyList();
+        }
+        groups = clientAPI.getGroups();
+        return groups;
     }
 
     @Override
@@ -103,6 +118,11 @@ public class BiSecureGatewayHandler extends BaseThingHandler implements BridgeHa
         if (clientAPI != null) {
             try {
                 clientAPI.logout();
+            } catch (Exception e) {
+                // Ignore
+            }
+            try {
+                clientAPI.close();
             } catch (Exception e) {
                 // Ignore
             }

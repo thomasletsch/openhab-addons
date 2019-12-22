@@ -84,15 +84,15 @@ public class BiSecureGroupHandler extends BaseThingHandler {
 
     @Override
     public void initialize() {
-        ClientAPI clientAPI = getClientAPI();
-        if (clientAPI == null) {
+        List<Group> groups = getBridgeHandler().getGroups();
+
+        if (groups == null) {
             logger.debug("ClientAPI not yet ready, cannot initialize");
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR,
                     "ClientAPI not yet ready, cannot initialize");
             return;
         }
         String groupId = getThing().getProperties().get(PROPERTY_ID);
-        List<Group> groups = clientAPI.getGroups();
         Group group = null;
         for (Group toBeChecked : groups) {
             if (toBeChecked.getId() == Integer.valueOf(groupId)) {
@@ -120,20 +120,27 @@ public class BiSecureGroupHandler extends BaseThingHandler {
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
-                for (Channel channel : channels) {
-                    updateChannelState(clientAPI, channel.getUID());
+                try {
+                    for (Channel channel : channels) {
+                        updateChannelState(channel.getUID());
+                    }
+                } catch (Exception e) {
+                    // We ignore errors here
                 }
             }
         };
         pollingJob = scheduler.scheduleAtFixedRate(runnable, 0, 30, TimeUnit.SECONDS);
     }
 
-    private void updateChannelState(ClientAPI clientAPI, ChannelUID channelUID) {
+    private void updateChannelState(ChannelUID channelUID) {
+        ClientAPI clientAPI = getClientAPI();
         try {
             Transition transition = clientAPI.getTransition(ports.get(channelUID));
             if (transition.getHcp().getPositionOpen()) {
+                logger.info("Set channel state of " + channelUID + " to " + OpenClosedType.OPEN);
                 updateState(channelUID, OpenClosedType.OPEN);
             } else if (transition.getHcp().getPositionClose()) {
+                logger.info("Set channel state of " + channelUID + " to " + OpenClosedType.CLOSED);
                 updateState(channelUID, OpenClosedType.CLOSED);
             } else {
                 logger.info("Could no determine OpenClosedType: " + transition);
@@ -144,6 +151,16 @@ public class BiSecureGroupHandler extends BaseThingHandler {
     }
 
     private @Nullable ClientAPI getClientAPI() {
+        BiSecureGatewayHandler biSecureGatewayHandler = getBridgeHandler();
+        if (biSecureGatewayHandler == null) {
+            logger.warn("Bridge handler is null, cannot get clientAPI");
+            return null;
+        }
+        ClientAPI clientAPI = biSecureGatewayHandler.getClientAPI();
+        return clientAPI;
+    }
+
+    private @Nullable BiSecureGatewayHandler getBridgeHandler() {
         Bridge bridge = getBridge();
         if (bridge == null) {
             logger.warn("Bridge is null, cannot get clientAPI");
@@ -154,8 +171,8 @@ public class BiSecureGroupHandler extends BaseThingHandler {
             logger.warn("Bridge handler is null, cannot get clientAPI");
             return null;
         }
-        ClientAPI clientAPI = ((BiSecureGatewayHandler) bridgeHandler).getClientAPI();
-        return clientAPI;
+        BiSecureGatewayHandler biSecureGatewayHandler = (BiSecureGatewayHandler) bridgeHandler;
+        return biSecureGatewayHandler;
     }
 
     @Override
@@ -167,7 +184,7 @@ public class BiSecureGroupHandler extends BaseThingHandler {
             return;
         }
         if (command instanceof RefreshType) {
-            updateChannelState(clientAPI, channelUID);
+            updateChannelState(channelUID);
             return;
         }
 
