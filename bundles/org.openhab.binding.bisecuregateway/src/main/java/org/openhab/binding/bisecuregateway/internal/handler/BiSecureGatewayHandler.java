@@ -84,8 +84,9 @@ public class BiSecureGatewayHandler extends BaseThingHandler implements BridgeHa
             thing.setProperty(PROPERTY_NAME, clientAPI.getName());
         }
         logger.info("Logging in with username " + config.userName);
-        clientAPI.login(config.userName, config.password);
-        updateStatus(ThingStatus.ONLINE);
+        if (clientAPI.login(config.userName, config.password)) {
+            updateStatus(ThingStatus.ONLINE);
+        }
     }
 
     public @Nullable ClientAPI getClientAPI() {
@@ -93,6 +94,10 @@ public class BiSecureGatewayHandler extends BaseThingHandler implements BridgeHa
     }
 
     public @Nullable List<Group> getGroups() {
+        if (thing.getStatus() != ThingStatus.ONLINE) {
+            logger.warn("GetGroups called, but bridge not ONLINE => ignoring");
+            return groups;
+        }
         if (!groups.isEmpty()) {
             return groups;
         }

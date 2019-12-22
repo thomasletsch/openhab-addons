@@ -24,7 +24,7 @@ import org.eclipse.smarthome.core.thing.ThingTypeUID;
 @NonNullByDefault
 public class BiSecureGatewayBindingConstants {
 
-    private static final String BINDING_ID = "bisecuregateway";
+    public static final String BINDING_ID = "bisecuregateway";
 
     // List of all Thing Type UIDs
     public static final ThingTypeUID GATEWAY_BRIDGE_TYPE = new ThingTypeUID(BINDING_ID, "bisecuregateway");

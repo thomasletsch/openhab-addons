@@ -31,7 +31,7 @@ import org.bisdk.sdk.PortType;
 import org.bisdk.sdk.Transition;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
-import org.eclipse.smarthome.core.library.types.OpenClosedType;
+import org.eclipse.smarthome.core.library.types.PercentType;
 import org.eclipse.smarthome.core.library.types.UpDownType;
 import org.eclipse.smarthome.core.thing.Bridge;
 import org.eclipse.smarthome.core.thing.Channel;
@@ -48,7 +48,6 @@ import org.eclipse.smarthome.core.thing.binding.builder.ThingBuilder;
 import org.eclipse.smarthome.core.thing.type.ChannelTypeUID;
 import org.eclipse.smarthome.core.types.Command;
 import org.eclipse.smarthome.core.types.RefreshType;
-import org.eclipse.smarthome.core.types.UnDefType;
 import org.openhab.binding.bisecuregateway.internal.BiSecureGatewayBindingConstants;
 import org.openhab.binding.bisecuregateway.internal.BiSecureGatewayHandlerFactory;
 import org.slf4j.Logger;
@@ -106,7 +105,7 @@ public class BiSecureGroupHandler extends BaseThingHandler {
         channels = new ArrayList<Channel>();
         group.getPorts().forEach(port -> {
             String portType = PortType.Companion.from(port.getType()).name(); // e.g. "IMPULS" for garage door control
-            ChannelTypeUID channelTypeUID = new ChannelTypeUID(getThing().getUID().getAsString() + ":" + portType);
+            ChannelTypeUID channelTypeUID = new ChannelTypeUID(BINDING_ID, portType);
             ChannelUID channelUID = new ChannelUID(getThing().getUID(), port.getId() + "_" + portType);
             Channel channel = ChannelBuilder.create(channelUID, BiSecureGatewayBindingConstants.ITEM_TYPE_ROLLERSHUTTER)
                     .withType(channelTypeUID).build();
@@ -120,12 +119,8 @@ public class BiSecureGroupHandler extends BaseThingHandler {
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
-                try {
-                    for (Channel channel : channels) {
-                        updateChannelState(channel.getUID());
-                    }
-                } catch (Exception e) {
-                    // We ignore errors here
+                for (Channel channel : channels) {
+                    updateChannelState(channel.getUID());
                 }
             }
         };
@@ -136,17 +131,19 @@ public class BiSecureGroupHandler extends BaseThingHandler {
         ClientAPI clientAPI = getClientAPI();
         try {
             Transition transition = clientAPI.getTransition(ports.get(channelUID));
-            if (transition.getHcp().getPositionOpen()) {
-                logger.info("Set channel state of " + channelUID + " to " + OpenClosedType.OPEN);
-                updateState(channelUID, OpenClosedType.OPEN);
-            } else if (transition.getHcp().getPositionClose()) {
-                logger.info("Set channel state of " + channelUID + " to " + OpenClosedType.CLOSED);
-                updateState(channelUID, OpenClosedType.CLOSED);
-            } else {
-                logger.info("Could no determine OpenClosedType: " + transition);
+            PercentType newState = new PercentType(100 - transition.getStateInPercent());
+            logger.info("Set channel state of " + channelUID + " to " + newState);
+            updateState(channelUID, newState);
+            if (getThing().getStatus() == ThingStatus.OFFLINE) {
+                updateStatus(ThingStatus.ONLINE);
             }
         } catch (PermissionDeniedException e) {
             clientAPI.relogin();
+        } catch (IllegalStateException e) {
+            // Retry and reconnect failed => set thing to status offline
+            updateStatus(ThingStatus.OFFLINE);
+        } catch (Exception e) {
+            // We ignore errors here
         }
     }
 
@@ -201,9 +198,6 @@ public class BiSecureGroupHandler extends BaseThingHandler {
                 clientAPI.setState(ports.get(channelUID));
             }
         }
-
-        // may need to ask the list if this can be set here?
-        updateState(channelUID, UnDefType.UNDEF);
 
         logger.warn("Command '{}' is not a String type for channel {}", command, channelUID);
         return;
