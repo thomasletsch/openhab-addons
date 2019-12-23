@@ -45,10 +45,6 @@ import org.slf4j.LoggerFactory;
 @NonNullByDefault
 public class BiSecureGatewayHandler extends BaseThingHandler implements BridgeHandler {
 
-    private static final String DEFAULT_TOKEN = "00000000";
-
-    private static final int DEFAULT_PORT = 4000;
-
     private final Logger logger = LoggerFactory.getLogger(BiSecureGatewayHandler.class);
 
     private @Nullable BiSecureGatewayConfiguration config;
@@ -73,8 +69,8 @@ public class BiSecureGatewayHandler extends BaseThingHandler implements BridgeHa
         try {
             InetAddress inetAddress = InetAddress
                     .getByName(thing.getProperties().get(PROPERTY_SOURCE_ADDRESS).replace("/", ""));
-            Client client = new Client(inetAddress, "000000000000", thing.getProperties().get(PROPERTY_GATEWAY_ID),
-                    DEFAULT_TOKEN, DEFAULT_PORT);
+            org.bisdk.sdk.Logger.Companion.setDebugEnabled(true);
+            Client client = new Client(inetAddress, thing.getProperties().get(PROPERTY_GATEWAY_ID));
             clientAPI = new ClientAPI(client);
         } catch (UnknownHostException e) {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR, e.getMessage());

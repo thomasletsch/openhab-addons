@@ -124,6 +124,9 @@ public class BiSecureGroupHandler extends BaseThingHandler {
                 }
             }
         };
+        if (pollingJob != null) {
+            pollingJob.cancel(true);
+        }
         pollingJob = scheduler.scheduleAtFixedRate(runnable, 0, 30, TimeUnit.SECONDS);
     }
 
