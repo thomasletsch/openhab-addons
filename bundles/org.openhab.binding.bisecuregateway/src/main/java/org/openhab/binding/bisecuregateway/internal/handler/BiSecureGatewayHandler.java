@@ -69,7 +69,13 @@ public class BiSecureGatewayHandler extends BaseThingHandler implements BridgeHa
         try {
             InetAddress inetAddress = InetAddress
                     .getByName(thing.getProperties().get(PROPERTY_SOURCE_ADDRESS).replace("/", ""));
-            org.bisdk.sdk.Logger.Companion.setDebugEnabled(true);
+            if (logger.isDebugEnabled()) {
+                org.bisdk.sdk.Logger.Companion.setDebugLevel();
+            } else if (logger.isInfoEnabled()) {
+                org.bisdk.sdk.Logger.Companion.setInfoLevel();
+            } else {
+                org.bisdk.sdk.Logger.Companion.setWarnLevel();
+            }
             Client client = new Client(inetAddress, thing.getProperties().get(PROPERTY_GATEWAY_ID));
             clientAPI = new ClientAPI(client);
         } catch (UnknownHostException e) {
@@ -89,7 +95,7 @@ public class BiSecureGatewayHandler extends BaseThingHandler implements BridgeHa
         return clientAPI;
     }
 
-    public @Nullable List<Group> getGroups() {
+    public List<Group> getGroups() {
         if (thing.getStatus() != ThingStatus.ONLINE) {
             logger.warn("GetGroups called, but bridge not ONLINE => ignoring");
             return groups;
@@ -115,6 +121,7 @@ public class BiSecureGatewayHandler extends BaseThingHandler implements BridgeHa
     }
 
     @Override
+    @SuppressWarnings("null")
     public void dispose() {
         if (clientAPI != null) {
             try {

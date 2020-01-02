@@ -83,7 +83,15 @@ public class BiSecureGroupHandler extends BaseThingHandler {
 
     @Override
     public void initialize() {
-        List<Group> groups = getBridgeHandler().getGroups();
+        BiSecureGatewayHandler bridgeHandler = getBridgeHandler();
+        if (bridgeHandler == null) {
+            logger.debug("BiSecureGatewayHandler not yet ready, cannot initialize");
+            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR,
+                    "BiSecureGatewayHandler not yet ready, cannot initialize");
+            return;
+        }
+
+        List<Group> groups = bridgeHandler.getGroups();
 
         if (groups == null) {
             logger.debug("ClientAPI not yet ready, cannot initialize");
@@ -132,10 +140,13 @@ public class BiSecureGroupHandler extends BaseThingHandler {
 
     private void updateChannelState(ChannelUID channelUID) {
         ClientAPI clientAPI = getClientAPI();
+        if (clientAPI == null) {
+            return;
+        }
         try {
             Transition transition = clientAPI.getTransition(ports.get(channelUID));
             PercentType newState = new PercentType(100 - transition.getStateInPercent());
-            logger.info("Set channel state of " + channelUID + " to " + newState);
+            logger.debug("Set channel state of " + channelUID + " to " + newState);
             updateState(channelUID, newState);
             if (getThing().getStatus() == ThingStatus.OFFLINE) {
                 updateStatus(ThingStatus.ONLINE);
