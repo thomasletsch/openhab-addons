@@ -211,9 +211,9 @@ public class BiSecureGroupHandler extends BaseThingHandler {
             } else {
                 clientAPI.setState(ports.get(channelUID));
             }
+        } else {
+            logger.warn("Command '{}' is not a String type for channel {}", command, channelUID);
         }
-
-        logger.warn("Command '{}' is not a String type for channel {}", command, channelUID);
         return;
     }
 

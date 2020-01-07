@@ -32,6 +32,7 @@ import org.eclipse.smarthome.core.thing.binding.BaseThingHandler;
 import org.eclipse.smarthome.core.thing.binding.BridgeHandler;
 import org.eclipse.smarthome.core.thing.binding.ThingHandler;
 import org.eclipse.smarthome.core.types.Command;
+import org.openhab.binding.bisecuregateway.internal.BiSdkLoggerAdapter;
 import org.openhab.binding.bisecuregateway.internal.BiSecureGatewayConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,6 +54,7 @@ public class BiSecureGatewayHandler extends BaseThingHandler implements BridgeHa
 
     public BiSecureGatewayHandler(Thing thing) {
         super(thing);
+        BiSdkLoggerAdapter.initLogger();
     }
 
     @Override
@@ -69,13 +71,6 @@ public class BiSecureGatewayHandler extends BaseThingHandler implements BridgeHa
         try {
             InetAddress inetAddress = InetAddress
                     .getByName(thing.getProperties().get(PROPERTY_SOURCE_ADDRESS).replace("/", ""));
-            if (logger.isDebugEnabled()) {
-                org.bisdk.sdk.Logger.Companion.setDebugLevel();
-            } else if (logger.isInfoEnabled()) {
-                org.bisdk.sdk.Logger.Companion.setInfoLevel();
-            } else {
-                org.bisdk.sdk.Logger.Companion.setWarnLevel();
-            }
             Client client = new Client(inetAddress, thing.getProperties().get(PROPERTY_GATEWAY_ID));
             clientAPI = new ClientAPI(client);
         } catch (UnknownHostException e) {
