@@ -19,8 +19,8 @@ import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.List;
 
-import org.bisdk.sdk.Client;
 import org.bisdk.sdk.ClientAPI;
+import org.bisdk.sdk.GatewayConnection;
 import org.bisdk.sdk.Group;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
@@ -71,8 +71,9 @@ public class BiSecureGatewayHandler extends BaseThingHandler implements BridgeHa
         try {
             InetAddress inetAddress = InetAddress
                     .getByName(thing.getProperties().get(PROPERTY_SOURCE_ADDRESS).replace("/", ""));
-            Client client = new Client(inetAddress, thing.getProperties().get(PROPERTY_GATEWAY_ID));
-            clientAPI = new ClientAPI(client);
+            GatewayConnection connection = new GatewayConnection(inetAddress,
+                    thing.getProperties().get(PROPERTY_GATEWAY_ID));
+            clientAPI = new ClientAPI(connection);
         } catch (UnknownHostException e) {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR, e.getMessage());
             return;
