@@ -79,7 +79,7 @@ public class BiSecureGatewayDiscoveryService extends AbstractDiscoveryService {
     }
 
     /**
-     * Starts discovery for Harmony Hubs
+     * Starts discovery for BiSecure gateways
      */
     private synchronized void startDiscovery() {
         if (running) {
@@ -92,7 +92,7 @@ public class BiSecureGatewayDiscoveryService extends AbstractDiscoveryService {
             running = true;
             scheduler.schedule(this::stopDiscovery, TIMEOUT, TimeUnit.SECONDS);
             discovery.sendDiscoveryRequest();
-            DiscoveryData discoveryData = discoveryFuture.join();
+            DiscoveryData discoveryData = discoveryFuture.get(TIMEOUT, TimeUnit.SECONDS);
             String name = discoveryData.getMac().replace(":", "-");
             ThingUID uid = new ThingUID(BiSecureGatewayBindingConstants.GATEWAY_BRIDGE_TYPE, name);
             // @formatter:off
@@ -113,7 +113,7 @@ public class BiSecureGatewayDiscoveryService extends AbstractDiscoveryService {
     }
 
     /**
-     * Stops discovery of Harmony Hubs
+     * Stops discovery of BiSecure gateways
      */
     private synchronized void stopDiscovery() {
         if (discoveryFuture != null && !discoveryFuture.isCancelled()) {

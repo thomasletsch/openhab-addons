@@ -32,6 +32,7 @@ import org.bisdk.sdk.Transition;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.smarthome.core.library.types.PercentType;
+import org.eclipse.smarthome.core.library.types.StopMoveType;
 import org.eclipse.smarthome.core.library.types.UpDownType;
 import org.eclipse.smarthome.core.thing.Bridge;
 import org.eclipse.smarthome.core.thing.Channel;
@@ -65,7 +66,21 @@ public class BiSecureGroupHandler extends BaseThingHandler {
     private final Logger logger = LoggerFactory.getLogger(BiSecureGroupHandler.class);
 
     public static final Set<ThingTypeUID> SUPPORTED_THING_TYPES_UIDS = Collections.singleton(GROUP_THING_TYPE);
-    private static final int MAX_ERRORS_IN_A_ROW = 4; // After 4 times a get state fails, we set the thing offline
+
+    /**
+     * After 4 times a get state fails, we set the thing offline
+     */
+    private static final int MAX_ERRORS_IN_A_ROW = 4;
+
+    /**
+     * Standard delay between two get transition calls (=state updates)
+     */
+    private static int STANDARD_POLLING_INTERVAL_SECONDS = 30;
+
+    /**
+     * Intensive delay between two get transition calls (=state updates). Used when door is opening / closing
+     */
+    private static int INTENSIVE_POLLING_INTERVAL_SECONDS = 4;
 
     private Map<ChannelUID, Port> ports = new HashMap<ChannelUID, Port>();
 
@@ -75,6 +90,7 @@ public class BiSecureGroupHandler extends BaseThingHandler {
     private List<Channel> channels = Collections.emptyList();
 
     private int consecutiveErrors = 0;
+    private boolean intensivePolling = false;
 
     public BiSecureGroupHandler(Thing thing, BiSecureGatewayHandlerFactory factory) {
         super(thing);
@@ -95,7 +111,7 @@ public class BiSecureGroupHandler extends BaseThingHandler {
             return;
         }
         createInitializingThread();
-        createPollingThread();
+        createPollingThread(STANDARD_POLLING_INTERVAL_SECONDS);
     }
 
     private void createInitializingThread() {
@@ -147,7 +163,7 @@ public class BiSecureGroupHandler extends BaseThingHandler {
         updateStatus(ThingStatus.ONLINE);
     }
 
-    private void createPollingThread() {
+    private void createPollingThread(int seconds) {
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
@@ -159,7 +175,7 @@ public class BiSecureGroupHandler extends BaseThingHandler {
         if (pollingJob != null) {
             pollingJob.cancel(true);
         }
-        pollingJob = scheduler.scheduleAtFixedRate(runnable, 0, 30, TimeUnit.SECONDS);
+        pollingJob = scheduler.scheduleAtFixedRate(runnable, 0, seconds, TimeUnit.SECONDS);
     }
 
     private void updateChannelState(ChannelUID channelUID) {
@@ -176,6 +192,10 @@ public class BiSecureGroupHandler extends BaseThingHandler {
                 updateStatus(ThingStatus.ONLINE);
             }
             consecutiveErrors = 0;
+            if (intensivePolling && !transition.isDriving()) {
+                createPollingThread(STANDARD_POLLING_INTERVAL_SECONDS);
+                intensivePolling = false;
+            }
         } catch (PermissionDeniedException e) {
             clientAPI.relogin();
         } catch (IllegalStateException e) {
@@ -232,12 +252,19 @@ public class BiSecureGroupHandler extends BaseThingHandler {
             return;
         }
 
+        UpDownType finalType = null;
         if (command instanceof UpDownType) {
-            UpDownType upDownType = (UpDownType) command;
-            if (upDownType == UpDownType.DOWN) {
-                clientAPI.setState(ports.get(channelUID)); // Still not clear how to explicitly open or close
-            } else {
+            finalType = (UpDownType) command;
+        }
+
+        if (finalType != null) {
+            Transition transition = clientAPI.getTransition(ports.get(channelUID));
+            if (shouldTriggerImpulse(command, transition)) {
                 clientAPI.setState(ports.get(channelUID));
+                createPollingThread(INTENSIVE_POLLING_INTERVAL_SECONDS);
+                intensivePolling = true;
+            } else {
+                logger.debug("Command " + command + " ignored since current state is already correct.");
             }
         } else {
             logger.warn("Command '{}' is not a String type for channel {}", command, channelUID);
@@ -245,14 +272,46 @@ public class BiSecureGroupHandler extends BaseThingHandler {
         return;
     }
 
+    private boolean shouldTriggerImpulse(Command command, Transition transition) {
+        PercentType newState = new PercentType(100 - transition.getStateInPercent());
+        if (command instanceof UpDownType) {
+            UpDownType finalType = (UpDownType) command;
+            if (finalType == UpDownType.DOWN && newState.intValue() == 0) {
+                // state is OPEN and command is close
+                return true;
+            }
+            if (finalType == UpDownType.UP && newState.intValue() == 100) {
+                // state is CLOSE and command is open
+                return true;
+            }
+        }
+        if (command instanceof StopMoveType) {
+            StopMoveType finalType = (StopMoveType) command;
+            if (finalType == StopMoveType.MOVE && !transition.isDriving()) {
+                // state is not DRIVING and command is MOVE
+                return true;
+            }
+            if (finalType == StopMoveType.STOP && transition.isDriving()) {
+                // state is DRIVING and command is STOP
+                return true;
+            }
+        }
+        // We should not trigger an impulse since desired state is already actual state
+        return false;
+    }
+
     @Override
     public void bridgeStatusChanged(ThingStatusInfo bridgeStatusInfo) {
+        logger.debug("Bridge Status changed: " + bridgeStatusInfo.getStatus());
     }
 
     @Override
     public void dispose() {
         if (pollingJob != null) {
             pollingJob.cancel(true);
+        }
+        if (initializingJob != null) {
+            initializingJob.cancel(true);
         }
     }
 }
