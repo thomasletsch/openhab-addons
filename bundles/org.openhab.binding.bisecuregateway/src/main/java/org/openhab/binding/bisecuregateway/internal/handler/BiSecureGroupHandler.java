@@ -65,12 +65,16 @@ public class BiSecureGroupHandler extends BaseThingHandler {
     private final Logger logger = LoggerFactory.getLogger(BiSecureGroupHandler.class);
 
     public static final Set<ThingTypeUID> SUPPORTED_THING_TYPES_UIDS = Collections.singleton(GROUP_THING_TYPE);
+    private static final int MAX_ERRORS_IN_A_ROW = 4; // After 4 times a get state fails, we set the thing offline
 
     private Map<ChannelUID, Port> ports = new HashMap<ChannelUID, Port>();
 
     private @Nullable ScheduledFuture<?> pollingJob;
+    private @Nullable ScheduledFuture<?> initializingJob;
 
     private List<Channel> channels = Collections.emptyList();
+
+    private int consecutiveErrors = 0;
 
     public BiSecureGroupHandler(Thing thing, BiSecureGatewayHandlerFactory factory) {
         super(thing);
@@ -90,15 +94,32 @@ public class BiSecureGroupHandler extends BaseThingHandler {
                     "BiSecureGatewayHandler not yet ready, cannot initialize");
             return;
         }
+        createInitializingThread();
+        createPollingThread();
+    }
 
-        List<Group> groups = bridgeHandler.getGroups();
-
-        if (groups == null) {
-            logger.debug("ClientAPI not yet ready, cannot initialize");
-            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR,
-                    "ClientAPI not yet ready, cannot initialize");
-            return;
+    private void createInitializingThread() {
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                logger.debug("Running initializing thread");
+                BiSecureGatewayHandler bridgeHandler = getBridgeHandler();
+                if (bridgeHandler != null && getThing().getStatus().equals(ThingStatus.INITIALIZING)) {
+                    initializeGroups(bridgeHandler);
+                }
+                if (getThing().getStatus().equals(ThingStatus.ONLINE)) {
+                    initializingJob.cancel(false);
+                }
+            }
+        };
+        if (initializingJob != null) {
+            initializingJob.cancel(true);
         }
+        initializingJob = scheduler.scheduleAtFixedRate(runnable, 0, 30, TimeUnit.SECONDS);
+    }
+
+    private void initializeGroups(BiSecureGatewayHandler bridgeHandler) {
+        List<Group> groups = bridgeHandler.getGroups();
         String groupId = getThing().getProperties().get(PROPERTY_ID);
         Group group = null;
         for (Group toBeChecked : groups) {
@@ -124,6 +145,9 @@ public class BiSecureGroupHandler extends BaseThingHandler {
         thingBuilder.withChannels(channels);
         updateThing(thingBuilder.build());
         updateStatus(ThingStatus.ONLINE);
+    }
+
+    private void createPollingThread() {
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
@@ -151,11 +175,15 @@ public class BiSecureGroupHandler extends BaseThingHandler {
             if (getThing().getStatus() == ThingStatus.OFFLINE) {
                 updateStatus(ThingStatus.ONLINE);
             }
+            consecutiveErrors = 0;
         } catch (PermissionDeniedException e) {
             clientAPI.relogin();
         } catch (IllegalStateException e) {
-            // Retry and reconnect failed => set thing to status offline
-            updateStatus(ThingStatus.OFFLINE);
+            consecutiveErrors++;
+            if (consecutiveErrors > MAX_ERRORS_IN_A_ROW) {
+                // Retry and reconnect failed => set thing to status offline
+                updateStatus(ThingStatus.OFFLINE);
+            }
         } catch (Exception e) {
             // We ignore errors here
         }
@@ -194,13 +222,13 @@ public class BiSecureGroupHandler extends BaseThingHandler {
             logger.warn("ClientAPI not yet ready, cannot handle command");
             return;
         }
-        if (command instanceof RefreshType) {
-            updateChannelState(channelUID);
+        if (getThing().getStatus() != ThingStatus.ONLINE) {
+            logger.debug("Gateway is offline, ignoring command {} for channel {}", command, channelUID);
             return;
         }
 
-        if (getThing().getStatus() != ThingStatus.ONLINE) {
-            logger.debug("Gateway is offline, ignoring command {} for channel {}", command, channelUID);
+        if (command instanceof RefreshType) {
+            updateChannelState(channelUID);
             return;
         }
 
