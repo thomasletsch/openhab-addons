@@ -28,4 +28,9 @@ public class BiSecureGatewayConfiguration {
      * Password
      */
     public String password;
+
+    /**
+     * Gateway IP Address. Not needed if the gateway is auto discovered!
+     */
+    public String gatewayAddress;
 }

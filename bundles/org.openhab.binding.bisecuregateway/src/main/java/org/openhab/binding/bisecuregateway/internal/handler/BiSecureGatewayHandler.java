@@ -67,10 +67,20 @@ public class BiSecureGatewayHandler extends BaseThingHandler implements BridgeHa
         logger.debug("Start initializing!");
         config = getConfigAs(BiSecureGatewayConfiguration.class);
         updateStatus(ThingStatus.UNKNOWN, ThingStatusDetail.BRIDGE_UNINITIALIZED, "Connecting to gateway");
-
         try {
-            InetAddress inetAddress = InetAddress
-                    .getByName(thing.getProperties().get(PROPERTY_SOURCE_ADDRESS).replace("/", ""));
+            String rawSourceAddress = thing.getProperties().get(PROPERTY_SOURCE_ADDRESS);
+            String sourceAddress;
+            if (rawSourceAddress != null) {
+                sourceAddress = rawSourceAddress.replace("/", "");
+            } else if (config.gatewayAddress != null && !config.gatewayAddress.isEmpty()) {
+                sourceAddress = config.gatewayAddress;
+            } else {
+                logger.error("No valid gateway address found! Cannot initialize");
+                updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR,
+                        "No valid gateway address found! Cannot initialize");
+                return;
+            }
+            InetAddress inetAddress = InetAddress.getByName(sourceAddress);
             GatewayConnection connection = new GatewayConnection(inetAddress,
                     thing.getProperties().get(PROPERTY_GATEWAY_ID));
             clientAPI = new ClientAPI(connection);

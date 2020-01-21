@@ -74,10 +74,14 @@ public class BiSecureDeviceDiscoveryService extends AbstractDiscoveryService {
             return;
         }
         logger.debug("getting devices on {}", bridgeHandler.getThing().getUID().getId());
-        List<Group> groups = bridgeHandler.getGroups();
-        groups.forEach(group -> {
-            addDiscoveryResults(group);
-        });
+        try {
+            List<Group> groups = bridgeHandler.getGroups();
+            groups.forEach(group -> {
+                addDiscoveryResults(group);
+            });
+        } catch (Exception e) {
+            logger.warn("Could not discover BiSecure groups, cause: " + e);
+        }
     }
 
     private void addDiscoveryResults(Group group) {

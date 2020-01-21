@@ -252,22 +252,13 @@ public class BiSecureGroupHandler extends BaseThingHandler {
             return;
         }
 
-        UpDownType finalType = null;
-        if (command instanceof UpDownType) {
-            finalType = (UpDownType) command;
-        }
-
-        if (finalType != null) {
-            Transition transition = clientAPI.getTransition(ports.get(channelUID));
-            if (shouldTriggerImpulse(command, transition)) {
-                clientAPI.setState(ports.get(channelUID));
-                createPollingThread(INTENSIVE_POLLING_INTERVAL_SECONDS);
-                intensivePolling = true;
-            } else {
-                logger.debug("Command " + command + " ignored since current state is already correct.");
-            }
+        Transition transition = clientAPI.getTransition(ports.get(channelUID));
+        if (shouldTriggerImpulse(command, transition)) {
+            clientAPI.setState(ports.get(channelUID));
+            createPollingThread(INTENSIVE_POLLING_INTERVAL_SECONDS);
+            intensivePolling = true;
         } else {
-            logger.warn("Command '{}' is not a String type for channel {}", command, channelUID);
+            logger.debug("Command " + command + " ignored since current state is already correct.");
         }
         return;
     }
@@ -276,11 +267,11 @@ public class BiSecureGroupHandler extends BaseThingHandler {
         PercentType newState = new PercentType(100 - transition.getStateInPercent());
         if (command instanceof UpDownType) {
             UpDownType finalType = (UpDownType) command;
-            if (finalType == UpDownType.DOWN && newState.intValue() == 0) {
+            if (finalType == UpDownType.DOWN && newState.intValue() != 100) {
                 // state is OPEN and command is close
                 return true;
             }
-            if (finalType == UpDownType.UP && newState.intValue() == 100) {
+            if (finalType == UpDownType.UP && newState.intValue() != 0) {
                 // state is CLOSE and command is open
                 return true;
             }

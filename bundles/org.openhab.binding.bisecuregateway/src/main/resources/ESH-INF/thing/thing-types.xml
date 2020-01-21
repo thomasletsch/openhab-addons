@@ -24,12 +24,17 @@
 				<description>This is the user name for logging in into the gateway. Default is "admin"</description>
 				<default>admin</default>
 			</parameter>
-			<parameter name="password" type="text" required="true">
-				<label>Password</label>
-				<description>This is the password for logging in into the gateway. Default is "0000"</description>
-				<context>password</context>
-				<default>0000</default>
-			</parameter>
+            <parameter name="password" type="text" required="true">
+                <label>Password</label>
+                <description>This is the password for logging in into the gateway. Default is "0000"</description>
+                <context>password</context>
+                <default>0000</default>
+            </parameter>
+            <parameter name="gatewayAddress" type="text" required="false">
+                <label>Gateway IP Address</label>
+                <description>This is the IP address of the gateway (e.g. 192.168.0.15). Default is empty, it should get auto discovered.</description>
+                <default></default>
+            </parameter>
 		</config-description>
 	</bridge-type>
 

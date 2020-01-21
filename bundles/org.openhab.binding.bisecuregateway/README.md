@@ -41,7 +41,9 @@ Currently only channels for port type ```IMPULS``` are created.
 
 
 | channel |      type     | description                   |
+
 |---------|---------------|-------------------------------|
+
 | IMPULS  | Rollershutter | The impulse controlled device |
 
 ## Full Example
