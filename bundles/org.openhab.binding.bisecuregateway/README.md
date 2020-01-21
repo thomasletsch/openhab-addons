@@ -24,6 +24,8 @@ Only garage doors (BiSecure Type 1) devices are currently supported.
 
 When calling the auto discovery the gateway is discovered first. You should then correct the username and password for the BiSecure gateway and call the device discovery for the BiSecure binding again. Then all your attached devices should be discovered.
 
+If auto discovery fails (e.g. because of network problems etc) you can add a BiSecure Gateway thing manually and set the gatewayAddress and gatewayId in the configuration properties manually. 
+
 We are currently investigating problem with auto discovery while running under docker.
 
 ## Thing Configuration
@@ -34,6 +36,14 @@ You should at least configure your username and password for the connection of t
 username=admin
 password=0000
 ```
+
+If doing manual adding of the gateway:
+
+```
+gatewayAddress=192.168.0.3
+gatewayId=5410EC036151
+```
+
 
 ## Channels
 
@@ -59,3 +69,13 @@ For better error investigation please set Loglevel to DEBUG. In Karaf console ex
 
 If you see only "Start BiSecure Gateway background discovery" and no further logging of the BiSecure binding, then most probably the auto discovery is not working.
 If you are running under docker, the auto discovery could just not work here. Workaround is not yet available.
+
+### Auto Discovery of Gateway does not work
+
+Add the gateway thing manually and set gatewayAddress and gatewayId in configuration
+
+#### Auto Discovery of groups (devices) does not work
+
+Check if you supplied correct username and password in the gateway thing configuration.
+Check the log file for more details which error occured.
+   

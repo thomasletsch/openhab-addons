@@ -33,4 +33,10 @@ public class BiSecureGatewayConfiguration {
      * Gateway IP Address. Not needed if the gateway is auto discovered!
      */
     public String gatewayAddress;
+
+    /**
+     * Gateway ID. Not needed if the gateway is auto discovered!
+     * The gateway id is the MAC address of the gateway without ":" separation chars
+     */
+    public String gatewayId;
 }

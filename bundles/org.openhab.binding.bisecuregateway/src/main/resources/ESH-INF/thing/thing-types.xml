@@ -35,6 +35,12 @@
                 <description>This is the IP address of the gateway (e.g. 192.168.0.15). Default is empty, it should get auto discovered.</description>
                 <default></default>
             </parameter>
+            <parameter name="gatewayId" type="text" required="false">
+                <label>Gateway ID</label>
+                <description>This is the id of the gateway (e.g. 5410EC036151). It is the MAC address of the gateway without separator char ":",
+                Default is empty, it should get auto discovered.</description>
+                <default></default>
+            </parameter>
 		</config-description>
 	</bridge-type>
 
