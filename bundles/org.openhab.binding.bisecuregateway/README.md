@@ -37,7 +37,7 @@ username=admin
 password=0000
 ```
 
-If doing manual adding of the gateway:
+If doing manual adding of the gateway (which is normally filled by auto discovery:
 
 ```
 gatewayAddress=192.168.0.3

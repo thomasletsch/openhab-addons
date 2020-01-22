@@ -33,7 +33,7 @@ public class BiSecureGatewayBindingConstants {
     // List of all properties
     public static final String PROPERTY_MAC = "mac";
     public static final String PROPERTY_GATEWAY_ID = "gatewayId";
-    public static final String PROPERTY_SOURCE_ADDRESS = "sourceAddress";
+    public static final String PROPERTY_GATEWAY_ADDRESS = "gatewayAddress";
     public static final String PROPERTY_SOFTWARE_VERSION = "swVersion";
     public static final String PROPERTY_HARDWARE_VERSION = "hwVersion";
     public static final String PROPERTY_PROTOCOL = "protocol";

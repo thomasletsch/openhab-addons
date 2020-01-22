@@ -100,7 +100,7 @@ public class BiSecureGatewayDiscoveryService extends AbstractDiscoveryService {
                     .withLabel("BiSecure Gateway")
                     .withProperty(PROPERTY_MAC, discoveryData.getMac())
                     .withProperty(PROPERTY_GATEWAY_ID, discoveryData.getGatewayId())
-                    .withProperty(PROPERTY_SOURCE_ADDRESS, discoveryData.getSourceAddress().toString())
+                    .withProperty(PROPERTY_GATEWAY_ADDRESS, discoveryData.getSourceAddress().toString().replace("/", ""))
                     .withProperty(PROPERTY_SOFTWARE_VERSION, discoveryData.getSwVersion())
                     .withProperty(PROPERTY_HARDWARE_VERSION, discoveryData.getHwVersion())
                     .withProperty(PROPERTY_PROTOCOL, discoveryData.getProtocol())

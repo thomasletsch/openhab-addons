@@ -12,7 +12,7 @@
  */
 package org.openhab.binding.bisecuregateway.internal.handler;
 
-import static org.openhab.binding.bisecuregateway.internal.BiSecureGatewayBindingConstants.*;
+import static org.openhab.binding.bisecuregateway.internal.BiSecureGatewayBindingConstants.PROPERTY_NAME;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -68,23 +68,15 @@ public class BiSecureGatewayHandler extends BaseThingHandler implements BridgeHa
         config = getConfigAs(BiSecureGatewayConfiguration.class);
         updateStatus(ThingStatus.UNKNOWN, ThingStatusDetail.BRIDGE_UNINITIALIZED, "Connecting to gateway");
         try {
-            String rawSourceAddress = thing.getProperties().get(PROPERTY_SOURCE_ADDRESS);
-            String sourceAddress;
-            if (rawSourceAddress != null) {
-                sourceAddress = rawSourceAddress.replace("/", "");
-            } else if (config.gatewayAddress != null && !config.gatewayAddress.isEmpty()) {
-                sourceAddress = config.gatewayAddress;
-            } else {
+            String gatewayAddress = config.gatewayAddress;
+            if (gatewayAddress == null) {
                 logger.error("No valid gateway address found! Cannot initialize");
                 updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR,
                         "No valid gateway address found! Cannot initialize");
                 return;
             }
-            InetAddress inetAddress = InetAddress.getByName(sourceAddress);
-            String gatewayId = thing.getProperties().get(PROPERTY_GATEWAY_ID);
-            if (gatewayId == null && config.gatewayId != null) {
-                gatewayId = config.gatewayId.replace(":", "");
-            }
+            InetAddress inetAddress = InetAddress.getByName(gatewayAddress);
+            String gatewayId = config.gatewayId;
             if (gatewayId == null || gatewayId.isEmpty()) {
                 logger.error("No valid gateway id found! Cannot initialize");
                 updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR,
