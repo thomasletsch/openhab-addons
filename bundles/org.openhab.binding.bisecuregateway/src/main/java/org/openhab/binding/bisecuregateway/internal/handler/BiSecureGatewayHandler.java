@@ -92,7 +92,12 @@ public class BiSecureGatewayHandler extends BaseThingHandler implements BridgeHa
                 return;
             }
 
-            GatewayConnection connection = new GatewayConnection(inetAddress, gatewayId);
+            GatewayConnection connection = null;
+            if (config.readTimeout != null && config.readTimeout > 0) {
+                connection = new GatewayConnection(inetAddress, gatewayId, config.readTimeout);
+            } else {
+                connection = new GatewayConnection(inetAddress, gatewayId);
+            }
             clientAPI = new ClientAPI(connection);
         } catch (UnknownHostException e) {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR, e.getMessage());

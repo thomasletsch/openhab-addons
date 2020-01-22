@@ -39,4 +39,10 @@ public class BiSecureGatewayConfiguration {
      * The gateway id is the MAC address of the gateway without ":" separation chars
      */
     public String gatewayId;
+
+    /**
+     * This is the timeout in ms for reading answer from the gateway.
+     * The default is 2000ms (2s) which should be ok for most installations. Not required.
+     */
+    public Integer readTimeout;
 }

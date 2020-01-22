@@ -44,6 +44,11 @@ gatewayAddress=192.168.0.3
 gatewayId=5410EC036151
 ```
 
+If you get often TimeoutExceptions during execution of requests, you can increase the receiveTimeout to a higher value than the default one (2000ms):
+
+```
+readTimeout=5000
+```
 
 ## Channels
 
