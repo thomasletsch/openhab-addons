@@ -44,6 +44,26 @@
                 <description>This is the timeout in ms for reading answer from the gateway. 
                 The default is 2000ms (2s) which should be ok for most installations.</description>
             </parameter>
+            <parameter name="pollingInterval" type="integer" required="false">
+                <label>Polling Interval (optional). Default is 30 (seconds).</label>
+                <description>This is the interval in seconds for polling the status of the bisecure device. 
+                Each time the bisecure gateway will send a wireless request to the device to query the state.</description>
+            </parameter>
+            <parameter name="activePollingInterval" type="integer" required="false">
+                <label>Polling Interval during working (optional). Default is 5 (seconds)</label>
+                <description>This is the interval in seconds for polling the status of the bisecure device while it is working (open or closing). 
+                Each time the bisecure gateway will send a wireless request to the device to query the state.</description>
+            </parameter>
+            <parameter name="activePollingTimeout" type="integer" required="false">
+                <label>Time after which active polling is stopped (optional). Default is 300 (seconds)</label>
+                <description>This is the time in seconds after which the active polling (see activePollingInterval) is stopped. 
+                Should be more how long your door needs to open or close.</description>
+            </parameter>
+            <parameter name="activePollingDuringOpened" type="boolean" required="false">
+                <label>Should we stay in active polling mode while the door is open? (optional). Default is false.</label>
+                <description>Normally the status updates are not very frequent to safe wireless calls. 
+                But to have a quite fast reaction, you can have the activePolling active while the door is open.</description>
+            </parameter>
 		</config-description>
 	</bridge-type>
 
@@ -61,11 +81,18 @@
 		</config-description>
 	</thing-type>
 
-	<channel-type id="IMPULS">
-		<item-type>Rollershutter</item-type>
-		<label>Impuls Control</label>
-		<description>An impuls control</description>
-		<category>Rollershutter</category>		
-	</channel-type>
+    <channel-type id="IMPULS">
+        <item-type>Rollershutter</item-type>
+        <label>Impuls Control</label>
+        <description>An impuls control</description>
+        <category>Rollershutter</category>      
+    </channel-type>
+    
+    <channel-type id="ERROR">
+        <item-type>String</item-type>
+        <label>Error</label>
+        <description>The current error or empty</description>
+        <category>Text</category>      
+    </channel-type>
 
 </thing:thing-descriptions>

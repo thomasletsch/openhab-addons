@@ -133,6 +133,10 @@ public class BiSecureGatewayHandler extends BaseThingHandler implements BridgeHa
         logger.warn("childHandlerDisposed not implemented!");
     }
 
+    public @Nullable BiSecureGatewayConfiguration getBindingConfig() {
+        return config;
+    }
+
     @Override
     @SuppressWarnings("null")
     public void dispose() {

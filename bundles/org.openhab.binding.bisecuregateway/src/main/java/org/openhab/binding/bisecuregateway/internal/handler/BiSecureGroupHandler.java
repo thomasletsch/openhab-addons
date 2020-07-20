@@ -33,6 +33,7 @@ import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.smarthome.core.library.types.PercentType;
 import org.eclipse.smarthome.core.library.types.StopMoveType;
+import org.eclipse.smarthome.core.library.types.StringType;
 import org.eclipse.smarthome.core.library.types.UpDownType;
 import org.eclipse.smarthome.core.thing.Bridge;
 import org.eclipse.smarthome.core.thing.Channel;
@@ -50,6 +51,7 @@ import org.eclipse.smarthome.core.thing.type.ChannelTypeUID;
 import org.eclipse.smarthome.core.types.Command;
 import org.eclipse.smarthome.core.types.RefreshType;
 import org.openhab.binding.bisecuregateway.internal.BiSecureGatewayBindingConstants;
+import org.openhab.binding.bisecuregateway.internal.BiSecureGatewayConfiguration;
 import org.openhab.binding.bisecuregateway.internal.BiSecureGatewayHandlerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,16 +74,6 @@ public class BiSecureGroupHandler extends BaseThingHandler {
      */
     private static final int MAX_ERRORS_IN_A_ROW = 4;
 
-    /**
-     * Standard delay between two get transition calls (=state updates)
-     */
-    private static int STANDARD_POLLING_INTERVAL_SECONDS = 30;
-
-    /**
-     * Intensive delay between two get transition calls (=state updates). Used when door is opening / closing
-     */
-    private static int INTENSIVE_POLLING_INTERVAL_SECONDS = 4;
-
     private Map<ChannelUID, Port> ports = new HashMap<ChannelUID, Port>();
 
     private @Nullable ScheduledFuture<?> pollingJob;
@@ -89,8 +81,15 @@ public class BiSecureGroupHandler extends BaseThingHandler {
 
     private List<Channel> channels = Collections.emptyList();
 
+    /**
+     * Map of the group channel id to the corresponding error channel
+     */
+    private Map<ChannelUID, Channel> errorChannels = new HashMap<>();
+
     private int consecutiveErrors = 0;
     private boolean intensivePolling = false;
+
+    private @Nullable BiSecureGatewayConfiguration bindingConfig;
 
     public BiSecureGroupHandler(Thing thing, BiSecureGatewayHandlerFactory factory) {
         super(thing);
@@ -110,8 +109,9 @@ public class BiSecureGroupHandler extends BaseThingHandler {
                     "BiSecureGatewayHandler not yet ready, cannot initialize");
             return;
         }
+        bindingConfig = bridgeHandler.getBindingConfig();
         createInitializingThread();
-        createPollingThread(STANDARD_POLLING_INTERVAL_SECONDS);
+        createPollingThread(bindingConfig.getPollingInterval());
     }
 
     private void createInitializingThread() {
@@ -155,10 +155,19 @@ public class BiSecureGroupHandler extends BaseThingHandler {
             Channel channel = ChannelBuilder.create(channelUID, BiSecureGatewayBindingConstants.ITEM_TYPE_ROLLERSHUTTER)
                     .withType(channelTypeUID).build();
             channels.add(channel);
+            ChannelTypeUID errorChannelTypeUID = new ChannelTypeUID(BINDING_ID, CHANNEL_TYPE_ERROR);
+            ChannelUID errorChannelUID = new ChannelUID(getThing().getUID(), port.getId() + "_ERROR");
+            Channel errorChannel = ChannelBuilder
+                    .create(errorChannelUID, BiSecureGatewayBindingConstants.ITEM_TYPE_ERROR)
+                    .withType(errorChannelTypeUID).build();
+            errorChannels.put(channelUID, errorChannel);
             ports.put(channelUID, port);
         });
+
         ThingBuilder thingBuilder = editThing();
-        thingBuilder.withChannels(channels);
+        List<Channel> allChannels = new ArrayList<>(channels);
+        allChannels.addAll(errorChannels.values());
+        thingBuilder.withChannels(allChannels);
         updateThing(thingBuilder.build());
         updateStatus(ThingStatus.ONLINE);
     }
@@ -193,20 +202,31 @@ public class BiSecureGroupHandler extends BaseThingHandler {
             }
             consecutiveErrors = 0;
             if (intensivePolling && !transition.isDriving()) {
-                createPollingThread(STANDARD_POLLING_INTERVAL_SECONDS);
+                createPollingThread(bindingConfig.getPollingInterval());
                 intensivePolling = false;
             }
         } catch (PermissionDeniedException e) {
             clientAPI.relogin();
+            updateErrorChannel(channelUID, "Permission denied - will retry");
         } catch (IllegalStateException e) {
+            updateErrorChannel(channelUID, "Illegal state: " + e.getMessage());
             consecutiveErrors++;
             if (consecutiveErrors > MAX_ERRORS_IN_A_ROW) {
                 // Retry and reconnect failed => set thing to status offline
                 updateStatus(ThingStatus.OFFLINE);
             }
         } catch (Exception e) {
+            updateErrorChannel(channelUID, "Unknown problem: " + e.getMessage());
             // We ignore errors here
         }
+    }
+
+    private void updateErrorChannel(ChannelUID channelUID, String message) {
+        Channel errorChannel = errorChannels.get(channelUID);
+        if (errorChannel == null) {
+            return;
+        }
+        updateState(errorChannel.getUID(), new StringType(message));
     }
 
     private @Nullable ClientAPI getClientAPI() {
@@ -255,7 +275,7 @@ public class BiSecureGroupHandler extends BaseThingHandler {
         Transition transition = clientAPI.getTransition(ports.get(channelUID));
         if (shouldTriggerImpulse(command, transition)) {
             clientAPI.setState(ports.get(channelUID));
-            createPollingThread(INTENSIVE_POLLING_INTERVAL_SECONDS);
+            createPollingThread(bindingConfig.getActivePollingInterval());
             intensivePolling = true;
         } else {
             logger.debug("Command " + command + " ignored since current state is already correct.");
@@ -267,13 +287,27 @@ public class BiSecureGroupHandler extends BaseThingHandler {
         PercentType newState = new PercentType(100 - transition.getStateInPercent());
         if (command instanceof UpDownType) {
             UpDownType finalType = (UpDownType) command;
-            if (finalType == UpDownType.DOWN && newState.intValue() != 100) {
-                // state is OPEN and command is close
-                return true;
+
+            if (transition.isDriving()) {
+                // Sending an impuls will stop, we only want to stop if driving in wrong direction
+                if (transition.getHcp().getDrivingToClose()) {
+                    return finalType == UpDownType.UP;
+                } else {
+                    return finalType == UpDownType.DOWN;
+                }
             }
-            if (finalType == UpDownType.UP && newState.intValue() != 0) {
-                // state is CLOSE and command is open
-                return true;
+
+            if (finalType == UpDownType.DOWN) {
+                if (newState.intValue() != 100) {
+                    // state is OPEN and command is close
+                    return true;
+                }
+            }
+            if (finalType == UpDownType.UP) {
+                if (newState.intValue() != 0) {
+                    // state is CLOSE and command is open
+                    return true;
+                }
             }
         }
         if (command instanceof StopMoveType) {

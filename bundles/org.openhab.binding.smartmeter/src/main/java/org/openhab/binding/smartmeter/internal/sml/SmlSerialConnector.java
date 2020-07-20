@@ -92,7 +92,12 @@ public final class SmlSerialConnector extends ConnectorBase<SmlFile> {
         Stack<SmlFile> smlFiles = new Stack<>();
         do {
             logger.trace("Reading {}. SML message", smlFiles.size() + 1);
-            smlFiles.push(TRANSPORT.getSMLFile(is));
+            try {
+                smlFiles.push(TRANSPORT.getSMLFile(is));
+            } catch (IOException ioe) {
+                logger.warn("Got IO Exception while reading message. Will skip...", ioe);
+                is.skip(is.available());
+            }
         } while (is != null && is.available() > 0);
         if (smlFiles.isEmpty()) {
             throw new IOException(getPortName() + " : There is no SML file in buffer. Try to increase Refresh rate.");
