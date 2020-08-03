@@ -50,6 +50,7 @@ import org.eclipse.smarthome.core.thing.binding.builder.ThingBuilder;
 import org.eclipse.smarthome.core.thing.type.ChannelTypeUID;
 import org.eclipse.smarthome.core.types.Command;
 import org.eclipse.smarthome.core.types.RefreshType;
+import org.eclipse.smarthome.core.types.State;
 import org.openhab.binding.bisecuregateway.internal.BiSecureGatewayBindingConstants;
 import org.openhab.binding.bisecuregateway.internal.BiSecureGatewayConfiguration;
 import org.openhab.binding.bisecuregateway.internal.BiSecureGatewayHandlerFactory;
@@ -86,8 +87,11 @@ public class BiSecureGroupHandler extends BaseThingHandler {
      */
     private Map<ChannelUID, Channel> errorChannels = new HashMap<>();
 
+    private Map<ChannelUID, State> oldChannelStates = new HashMap<>();
+
     private int consecutiveErrors = 0;
-    private boolean intensivePolling = false;
+    private boolean activePolling = false;
+    private long activePollingStartedAt = 0;
 
     private @Nullable BiSecureGatewayConfiguration bindingConfig;
 
@@ -195,16 +199,18 @@ public class BiSecureGroupHandler extends BaseThingHandler {
         try {
             Transition transition = clientAPI.getTransition(ports.get(channelUID));
             PercentType newState = new PercentType(100 - transition.getStateInPercent());
-            logger.debug("Set channel state of " + channelUID + " to " + newState);
-            updateState(channelUID, newState);
+            if (oldChannelStates.get(channelUID) != null && oldChannelStates.get(channelUID).equals(newState)) {
+                logger.debug("Channel state of " + channelUID + " did not change.");
+            } else {
+                logger.debug("Set channel state of " + channelUID + " to " + newState);
+                updateState(channelUID, newState);
+            }
+            updateErrorChannel(channelUID, "");
             if (getThing().getStatus() == ThingStatus.OFFLINE) {
                 updateStatus(ThingStatus.ONLINE);
             }
             consecutiveErrors = 0;
-            if (intensivePolling && !transition.isDriving()) {
-                createPollingThread(bindingConfig.getPollingInterval());
-                intensivePolling = false;
-            }
+            checkActivePolling(transition);
         } catch (PermissionDeniedException e) {
             clientAPI.relogin();
             updateErrorChannel(channelUID, "Permission denied - will retry");
@@ -221,12 +227,30 @@ public class BiSecureGroupHandler extends BaseThingHandler {
         }
     }
 
+    private void checkActivePolling(Transition transition) {
+        long timeSinceActivePollingStarted = getCurrentTimeSeconds() - activePollingStartedAt;
+        boolean activePollingTimedOut = timeSinceActivePollingStarted >= bindingConfig.getActivePollingTimeout();
+        boolean isMoving = transition.isDriving();
+        boolean isOpen = transition.getStateInPercent() == 0;
+        boolean isOpenAndShouldStayActive = isOpen && bindingConfig.getActivePollingDuringOpened();
+        if (activePolling && activePollingTimedOut && !isMoving && !isOpenAndShouldStayActive) {
+            startActivePolling();
+        } else if (!activePolling && isOpenAndShouldStayActive) {
+            stopActivePolling();
+        }
+    }
+
     private void updateErrorChannel(ChannelUID channelUID, String message) {
         Channel errorChannel = errorChannels.get(channelUID);
         if (errorChannel == null) {
             return;
         }
-        updateState(errorChannel.getUID(), new StringType(message));
+        StringType newState = new StringType(message);
+        if (oldChannelStates.get(channelUID) != null && oldChannelStates.get(channelUID).equals(newState)) {
+            logger.debug("Channel state of " + channelUID + " did not change.");
+        } else {
+            updateState(errorChannel.getUID(), newState);
+        }
     }
 
     private @Nullable ClientAPI getClientAPI() {
@@ -275,12 +299,26 @@ public class BiSecureGroupHandler extends BaseThingHandler {
         Transition transition = clientAPI.getTransition(ports.get(channelUID));
         if (shouldTriggerImpulse(command, transition)) {
             clientAPI.setState(ports.get(channelUID));
-            createPollingThread(bindingConfig.getActivePollingInterval());
-            intensivePolling = true;
+            stopActivePolling();
         } else {
             logger.debug("Command " + command + " ignored since current state is already correct.");
         }
         return;
+    }
+
+    private void startActivePolling() {
+        createPollingThread(bindingConfig.getPollingInterval());
+        activePolling = false;
+    }
+
+    private void stopActivePolling() {
+        createPollingThread(bindingConfig.getActivePollingInterval());
+        activePolling = true;
+        activePollingStartedAt = getCurrentTimeSeconds();
+    }
+
+    private long getCurrentTimeSeconds() {
+        return System.currentTimeMillis() / 1000;
     }
 
     private boolean shouldTriggerImpulse(Command command, Transition transition) {
