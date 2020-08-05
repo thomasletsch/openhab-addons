@@ -123,12 +123,16 @@ public class BiSecureGroupHandler extends BaseThingHandler {
             @Override
             public void run() {
                 logger.debug("Running initializing thread");
-                BiSecureGatewayHandler bridgeHandler = getBridgeHandler();
-                if (bridgeHandler != null && getThing().getStatus().equals(ThingStatus.INITIALIZING)) {
-                    initializeGroups(bridgeHandler);
-                }
-                if (getThing().getStatus().equals(ThingStatus.ONLINE)) {
-                    initializingJob.cancel(false);
+                try {
+                    BiSecureGatewayHandler bridgeHandler = getBridgeHandler();
+                    if (bridgeHandler != null && getThing().getStatus().equals(ThingStatus.INITIALIZING)) {
+                        initializeGroups(bridgeHandler);
+                    }
+                    if (getThing().getStatus().equals(ThingStatus.ONLINE)) {
+                        initializingJob.cancel(false);
+                    }
+                } catch (Exception e) {
+                    logger.error("Got error while trying to get groups. Will retry in 30sec... ", e);
                 }
             }
         };

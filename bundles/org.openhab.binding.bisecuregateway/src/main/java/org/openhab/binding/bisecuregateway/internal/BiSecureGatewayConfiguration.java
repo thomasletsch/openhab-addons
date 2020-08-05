@@ -33,6 +33,8 @@ public class BiSecureGatewayConfiguration {
 
     private static boolean DEFAULT_ACTIVE_POLLING_DURING_OPENED = false;
 
+    private static int DEFAULT_READ_TIMEOUT_MILLI_SECONDS = 5000;
+
     /**
      * Username
      */
@@ -87,6 +89,10 @@ public class BiSecureGatewayConfiguration {
      * The default is false. Not required.
      */
     public Boolean activePollingDuringOpened;
+
+    public Integer getReadTimeout() {
+        return readTimeout == null ? DEFAULT_READ_TIMEOUT_MILLI_SECONDS : readTimeout;
+    }
 
     public Integer getPollingInterval() {
         return pollingInterval == null ? DEFAULT_POLLING_INTERVAL_SECONDS : pollingInterval;
